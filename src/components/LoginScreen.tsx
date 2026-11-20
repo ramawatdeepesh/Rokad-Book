@@ -21,6 +21,12 @@ export const LoginScreen: React.FC = () => {
         setAuthError('Sign-in window was closed before completing login. Please try again.');
       } else if (code === 'auth/popup-blocked') {
         setAuthError('Your browser blocked the Google sign-in popup. Please allow popups and retry.');
+      } else if (code === 'auth/unauthorized-domain') {
+        setAuthError(
+          `This domain (${window.location.hostname}) is not authorized in Firebase Authentication. Add it under Firebase Console → Authentication → Settings → Authorized domains.`
+        );
+      } else if (code) {
+        setAuthError(`Could not sign in with Google (${code}). Please try again.`);
       } else {
         setAuthError('Could not sign in with Google right now. Please try again.');
       }
