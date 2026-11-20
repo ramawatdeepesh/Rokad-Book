@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --color-canvas: #F2F4F8;
+  --color-surface: #FFFFFF;
+  --color-indigo-brand: #3B5BDB;
+  --color-indigo-deep: #1A40C2;
+  --color-indigo-tint: #EEF2FF;
+  --color-cash-in: #0C9B6A;
+  --color-cash-in-tint: #E8F7F1;
+  --color-cash-out: #D6453D;
+  --color-cash-out-tint: #FDEEEC;
+  --color-ink: #141B2D;
+  --color-muted: #637083;
+  --color-divider: #E2E6EE;
+}
+
+@layer base {
+  html,
+  body {
+    font-family: var(--font-sans);
+    background-color: #F2F4F8;
+    color: #141B2D;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  [role="button"] {
+    cursor: pointer;
+  }
+}
+
+.tnum {
+  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.card-ledger {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E6EE;
+  border-radius: 18px;
+  box-shadow: 0 2px 8px -2px rgba(20, 27, 45, 0.05), 0 1px 3px 0 rgba(20, 27, 45, 0.03);
+}
+
+.sheet-elevated {
+  background-color: #FFFFFF;
+  box-shadow: 0 12px 32px -4px rgba(20, 27, 45, 0.12), 0 4px 12px -2px rgba(20, 27, 45, 0.06);
+}
+
+.bottom-nav-elevated {
+  background-color: #FFFFFF;
+  border-top: 1px solid #E2E6EE;
+  box-shadow: 0 -4px 16px rgba(20, 27, 45, 0.04);
+}
+
+/* Custom subtle scrollbars for filter strips */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@media print {
+  body {
+    background: #FFFFFF !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .card-ledger {
+    box-shadow: none !important;
+    border-color: #CBD5E1 !important;
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Daybook Mercantile Ledger",
+  "description": "High-contrast digital cashbook, udhaar khata, and daily mercantile ledger designed for Indian retail merchants.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,375 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Hardened Global Primitives ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isVerifiedOwner(userId) {
+      return isEmailVerified() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function parentProfileExists(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId));
+    }
+
+    function validOptionalPartyRef(userId, partyId) {
+      return partyId == '' || (
+        isValidId(partyId) &&
+        exists(/databases/$(database)/documents/users/$(userId)/parties/$(partyId))
+      );
+    }
+
+    // --- Validation Blueprints (Synchronized verbatim with firebase-blueprint.json) ---
+    function isValidBusinessType(val) {
+      return val is string && val in [
+        'Kirana & Provision',
+        'Jewellery & Bullion',
+        'Sweets & Dairy',
+        'Textiles & Garments',
+        'Hardware & Paints'
+      ];
+    }
+
+    function isValidCustomCategories(val) {
+      return val is list
+        && val.size() <= 25
+        && (val.size() == 0 || (val[0] is string && val[0].size() >= 1 && val[0].size() <= 40));
+    }
+
+    function isValidShopProfile(data, userId) {
+      return data.keys().hasAll([
+        'uid',
+        'email',
+        'shopName',
+        'proprietorName',
+        'businessType',
+        'phone',
+        'gstin',
+        'address',
+        'openingCashBalance',
+        'customCategories',
+        'showBilingualTerms',
+        'showNumericKeypad',
+        'showPaiseDecimals',
+        'profileCompleted',
+        'createdAt',
+        'updatedAt'
+      ]) && data.keys().hasOnly([
+        'uid',
+        'email',
+        'shopName',
+        'proprietorName',
+        'businessType',
+        'phone',
+        'gstin',
+        'address',
+        'openingCashBalance',
+        'customCategories',
+        'showBilingualTerms',
+        'showNumericKeypad',
+        'showPaiseDecimals',
+        'profileCompleted',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.uid is string && data.uid == userId && isValidId(data.uid)
+      && data.email is string && data.email.size() <= 200 && data.email == request.auth.token.email
+      && data.shopName is string && data.shopName.size() >= 1 && data.shopName.size() <= 120
+      && data.proprietorName is string && data.proprietorName.size() >= 1 && data.proprietorName.size() <= 100
+      && isValidBusinessType(data.businessType)
+      && data.phone is string && data.phone.size() == 10 && data.phone.matches('^[0-9]{10}$')
+      && data.gstin is string && data.gstin.size() <= 20
+      && data.address is string && data.address.size() <= 240
+      && data.openingCashBalance is number && data.openingCashBalance >= 0 && data.openingCashBalance <= 1000000000
+      && isValidCustomCategories(data.customCategories)
+      && data.showBilingualTerms is bool
+      && data.showNumericKeypad is bool
+      && data.showPaiseDecimals is bool
+      && data.profileCompleted is bool
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidParty(data, userId) {
+      return data.keys().hasAll([
+        'ownerId',
+        'name',
+        'phone',
+        'role',
+        'address',
+        'openingBalance',
+        'createdAt',
+        'updatedAt'
+      ]) && data.keys().hasOnly([
+        'ownerId',
+        'name',
+        'phone',
+        'role',
+        'address',
+        'openingBalance',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.ownerId is string && data.ownerId == userId && isValidId(data.ownerId)
+      && data.name is string && data.name.size() >= 1 && data.name.size() <= 120
+      && data.phone is string && data.phone.size() <= 10 && data.phone.matches('^([0-9]{10})?$')
+      && data.role is string && data.role in ['customer', 'supplier']
+      && data.address is string && data.address.size() <= 240
+      && data.openingBalance is number && data.openingBalance >= -1000000000 && data.openingBalance <= 1000000000
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidEntryCategory(val) {
+      return val is string && val.size() >= 1 && val.size() <= 40;
+    }
+
+    function isValidTransaction(data, userId) {
+      return data.keys().hasAll([
+        'ownerId',
+        'direction',
+        'amount',
+        'paymentMode',
+        'partyId',
+        'partyName',
+        'category',
+        'note',
+        'billNo',
+        'date',
+        'time',
+        'createdAt',
+        'updatedAt'
+      ]) && data.keys().hasOnly([
+        'ownerId',
+        'direction',
+        'amount',
+        'paymentMode',
+        'partyId',
+        'partyName',
+        'category',
+        'note',
+        'billNo',
+        'date',
+        'time',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.ownerId is string && data.ownerId == userId && isValidId(data.ownerId)
+      && data.direction is string && data.direction in ['in', 'out']
+      && data.amount is number && data.amount > 0 && data.amount <= 1000000000
+      && data.paymentMode is string && data.paymentMode in ['Cash', 'UPI', 'Khata']
+      && data.partyId is string && data.partyId.size() <= 128
+      && data.partyName is string && data.partyName.size() >= 1 && data.partyName.size() <= 120
+      && isValidEntryCategory(data.category)
+      && data.note is string && data.note.size() <= 280
+      && data.billNo is string && data.billNo.size() <= 40
+      && data.date is string && data.date.size() == 10 && data.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+      && data.time is string && data.time.size() == 5 && data.time.matches('^[0-9]{2}:[0-9]{2}$')
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    function isValidNoteCount(val) {
+      return val is number && val >= 0 && val <= 100000;
+    }
+
+    function isValidCashDrawer(data, userId) {
+      return data.keys().hasAll([
+        'ownerId',
+        'n500',
+        'n200',
+        'n100',
+        'n50',
+        'n20',
+        'n10',
+        'createdAt',
+        'updatedAt'
+      ]) && data.keys().hasOnly([
+        'ownerId',
+        'n500',
+        'n200',
+        'n100',
+        'n50',
+        'n20',
+        'n10',
+        'createdAt',
+        'updatedAt'
+      ])
+      && data.ownerId is string && data.ownerId == userId && isValidId(data.ownerId)
+      && isValidNoteCount(data.n500)
+      && isValidNoteCount(data.n200)
+      && isValidNoteCount(data.n100)
+      && isValidNoteCount(data.n50)
+      && isValidNoteCount(data.n20)
+      && isValidNoteCount(data.n10)
+      && data.createdAt is timestamp
+      && data.updatedAt is timestamp;
+    }
+
+    // --- Collection Rules ---
+
+    match /users/{userId} {
+      allow get: if isVerifiedOwner(userId) && isValidId(userId);
+      allow list: if false;
+
+      allow create: if isVerifiedOwner(userId)
+        && isValidId(userId)
+        && isValidShopProfile(incoming(), userId)
+        && incoming().createdAt == request.time
+        && incoming().updatedAt == request.time;
+
+      allow update: if isVerifiedOwner(userId)
+        && isValidId(userId)
+        && isValidShopProfile(incoming(), userId)
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email
+        && incoming().createdAt == existing().createdAt
+        && incoming().updatedAt == request.time
+        && incoming().diff(existing()).affectedKeys().hasOnly([
+          'shopName',
+          'proprietorName',
+          'businessType',
+          'phone',
+          'gstin',
+          'address',
+          'openingCashBalance',
+          'customCategories',
+          'showBilingualTerms',
+          'showNumericKeypad',
+          'showPaiseDecimals',
+          'profileCompleted',
+          'updatedAt'
+        ]);
+
+      allow delete: if false;
+
+      match /parties/{partyId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(partyId) && parentProfileExists(userId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+
+        allow create: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(partyId)
+          && isValidParty(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && parentProfileExists(userId);
+
+        allow update: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(partyId)
+          && isValidParty(incoming(), userId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'name',
+            'phone',
+            'role',
+            'address',
+            'openingBalance',
+            'updatedAt'
+          ])
+          && parentProfileExists(userId);
+
+        allow delete: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(partyId) && parentProfileExists(userId);
+      }
+
+      match /transactions/{transactionId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(transactionId) && parentProfileExists(userId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+
+        allow create: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(transactionId)
+          && isValidTransaction(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && parentProfileExists(userId)
+          && validOptionalPartyRef(userId, incoming().partyId);
+
+        allow update: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(transactionId)
+          && isValidTransaction(incoming(), userId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'direction',
+            'amount',
+            'paymentMode',
+            'partyId',
+            'partyName',
+            'category',
+            'note',
+            'billNo',
+            'date',
+            'time',
+            'updatedAt'
+          ])
+          && parentProfileExists(userId)
+          && validOptionalPartyRef(userId, incoming().partyId);
+
+        allow delete: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(transactionId) && parentProfileExists(userId);
+      }
+
+      match /cashDrawer/{drawerId} {
+        allow get: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(drawerId) && parentProfileExists(userId);
+        allow list: if isVerifiedOwner(userId) && resource.data.ownerId == request.auth.uid;
+
+        allow create: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(drawerId)
+          && isValidCashDrawer(incoming(), userId)
+          && incoming().createdAt == request.time
+          && incoming().updatedAt == request.time
+          && parentProfileExists(userId);
+
+        allow update: if isVerifiedOwner(userId)
+          && isValidId(userId)
+          && isValidId(drawerId)
+          && isValidCashDrawer(incoming(), userId)
+          && incoming().ownerId == existing().ownerId
+          && incoming().createdAt == existing().createdAt
+          && incoming().updatedAt == request.time
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'n500',
+            'n200',
+            'n100',
+            'n50',
+            'n20',
+            'n10',
+            'updatedAt'
+          ])
+          && parentProfileExists(userId);
+
+        allow delete: if isVerifiedOwner(userId) && isValidId(userId) && isValidId(drawerId) && parentProfileExists(userId);
+      }
+    }
+  }
+}

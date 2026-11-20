@@ -1,0 +1,206 @@
+---
+name: Daybook Mercantile Ledger
+colors:
+  surface: '#faf8ff'
+  surface-dim: '#d3d9f2'
+  surface-bright: '#faf8ff'
+  surface-container-lowest: '#ffffff'
+  surface-container-low: '#f2f3ff'
+  surface-container: '#eaedff'
+  surface-container-high: '#e2e7ff'
+  surface-container-highest: '#dbe2fb'
+  on-surface: '#141b2d'
+  on-surface-variant: '#444654'
+  inverse-surface: '#293043'
+  inverse-on-surface: '#eef0ff'
+  outline: '#747686'
+  outline-variant: '#c4c5d6'
+  surface-tint: '#3052d2'
+  primary: '#1a40c2'
+  on-primary: '#ffffff'
+  primary-container: '#3b5bdb'
+  on-primary-container: '#e2e5ff'
+  inverse-primary: '#b8c3ff'
+  secondary: '#006c48'
+  on-secondary: '#ffffff'
+  secondary-container: '#83f9c0'
+  on-secondary-container: '#00734d'
+  tertiary: '#9c1a19'
+  on-tertiary: '#ffffff'
+  tertiary-container: '#be342e'
+  on-tertiary-container: '#ffe0dc'
+  error: '#ba1a1a'
+  on-error: '#ffffff'
+  error-container: '#ffdad6'
+  on-error-container: '#93000a'
+  primary-fixed: '#dde1ff'
+  primary-fixed-dim: '#b8c3ff'
+  on-primary-fixed: '#001355'
+  on-primary-fixed-variant: '#0736ba'
+  secondary-fixed: '#83f9c0'
+  secondary-fixed-dim: '#65dca5'
+  on-secondary-fixed: '#002113'
+  on-secondary-fixed-variant: '#005236'
+  tertiary-fixed: '#ffdad6'
+  tertiary-fixed-dim: '#ffb4ab'
+  on-tertiary-fixed: '#410002'
+  on-tertiary-fixed-variant: '#8f0e12'
+  background: '#faf8ff'
+  on-background: '#141b2d'
+  surface-variant: '#dbe2fb'
+typography:
+  display-lg:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 32px
+    fontWeight: '700'
+    lineHeight: 40px
+    letterSpacing: -0.02em
+  display-lg-mobile:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 26px
+    fontWeight: '700'
+    lineHeight: 34px
+    letterSpacing: -0.01em
+  headline-lg:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 24px
+    fontWeight: '600'
+    lineHeight: 32px
+    letterSpacing: -0.01em
+  headline-md:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 20px
+    fontWeight: '600'
+    lineHeight: 28px
+  headline-sm:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 18px
+    fontWeight: '600'
+    lineHeight: 24px
+  body-lg:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 16px
+    fontWeight: '400'
+    lineHeight: 24px
+  body-md:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 14px
+    fontWeight: '400'
+    lineHeight: 20px
+  body-sm:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 12px
+    fontWeight: '400'
+    lineHeight: 16px
+  amount-lg:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 24px
+    fontWeight: '700'
+    lineHeight: 30px
+    letterSpacing: -0.01em
+  amount-md:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 16px
+    fontWeight: '600'
+    lineHeight: 22px
+  label-md:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 12px
+    fontWeight: '600'
+    lineHeight: 16px
+    letterSpacing: 0.04em
+  label-sm:
+    fontFamily: Plus Jakarta Sans
+    fontSize: 11px
+    fontWeight: '500'
+    lineHeight: 14px
+rounded:
+  sm: 0.25rem
+  DEFAULT: 0.5rem
+  md: 0.75rem
+  lg: 1rem
+  xl: 1.5rem
+  full: 9999px
+spacing:
+  gutter: 1rem
+  margin: 1rem
+  space-xs: 0.25rem
+  space-sm: 0.5rem
+  space-md: 1rem
+  space-lg: 1.25rem
+  space-xl: 1.75rem
+---
+
+## Brand & Style
+The brand targets traditional, industrious Indian retail merchants (kirana, jewellery, sweets, textiles) seeking clarity, absolute financial accuracy, and calm efficiency. The visual aesthetic fuses Modern Corporate Utility with Tactile Softness, evoking immediate reliability, friction-free accounting, and institutional trust. Interfaces prioritize legibility under direct sunlight and high ambient shop glare, fast one-handed mobile entry, and clear transaction directionality.
+
+## Colors
+The palette leverages high-contrast readability against a dedicated slate-tinted canvas:
+- **Canvas Base:** `#F2F4F8` ensures reduced eye strain throughout long retail shifts.
+- **Card Surfaces:** Crisp `#FFFFFF` surfaces provide separation from the canvas.
+- **Primary Brand Accent (Indigo):** `#3B5BDB` handles interactive affordances, active navigation, primary action buttons, and active tabs.
+- **Directional Cash In (Emerald Green):** `#0C9B6A` indicates incoming credits ("Jama"), cash received, positive balances, and safe settlement states.
+- **Directional Cash Out (Crimson Red):** `#D6453D` marks outgoing debits ("Naam"), vendor payouts, and unpaid debt alerts ("Udhaar").
+- **Neutral Foreground:** `#141B2D` serves as primary text and high-emphasis numerals.
+- **Muted Metadata:** `#637083` covers timestamps, secondary descriptors, and inactive iconography.
+- **Structural Dividing Line:** `#E2E6EE` sets structural boundaries without visual noise.
+
+## Typography
+Plus Jakarta Sans is utilized uniformly across all roles to maintain warm clarity and geometric precision. 
+
+### Numeric Formatting Rule
+All monetary values, balance sums, phone numbers, and ledger columns must explicitly enforce `font-feature-settings: "tnum" 1` (tabular numerals) to ensure precise vertical digit alignment across statement rows. 
+
+### Indian Currency Display Standard
+All financial amounts must be prefixed with the Rupee symbol (`₹`) with a non-breaking space before the value. Figures strictly adhere to the Indian numbering grouping system (`₹1,25,000` rather than `₹125,000`; `₹12,45,670.50` rather than `₹1,245,670.50`).
+
+## Layout & Spacing
+The layout relies on a mobile-first, single-column fluid grid system bounded by a max-width container of `480px` on mobile viewports and scaling to multi-column analytical panels on tablets/desktops (max `1120px`). 
+
+- **Outer Margins:** Fixed at `1rem` (16px) on mobile viewports to maximize surface area for touch interaction, scaling to `1.5rem` on tablet screens.
+- **Component Stack Rhythm:** Stack transaction line items and balance cards with a continuous `space-sm` (8px) or `space-md` (16px) separation.
+- **Mobile Touch Footprint:** Every actionable element, tab bar node, and calculator keypad key maintains a minimum touch box of `48px × 48px` to ensure effortless operation during brisk customer checkouts.
+
+## Elevation & Depth
+Depth is created through ambient surface contrast and low-opacity, diffused slate shadowing:
+- **Base Surface:** Level 0 at `#F2F4F8`, flat and non-elevated.
+- **Resting Ledger Cards (Level 1):** Solid `#FFFFFF` background with a subtle border of `1px solid #E2E6EE` and an ambient drop shadow: `0 2px 8px -2px rgba(20, 27, 45, 0.05), 0 1px 3px 0 rgba(20, 27, 45, 0.03)`.
+- **Floating Modals & Cash Drawers (Level 2):** Quick transaction sheets use `0 12px 32px -4px rgba(20, 27, 45, 0.12), 0 4px 12px -2px rgba(20, 27, 45, 0.06)`.
+- **Sticky Navigation Layers:** Mobile bottom navigation bar utilizes a fixed elevation with a top border of `1px solid #E2E6EE` and an upward glow: `0 -4px 16px rgba(20, 27, 45, 0.04)`.
+
+## Shapes
+Primary cards, transactional summary modules, and sheet containers strictly use an `18px` border radius (`rounded-lg` override at 1.125rem). Small elements like status pills, chips, and quick tags use full pill radiuses (`9999px`). Action inputs and buttons use `12px` roundedness to provide tactile physical definition.
+
+## Components
+
+### Buttons
+- **Primary Buttons:** High-contrast Indigo (`#3B5BDB`) background, white text, 12px border radius, min-height 52px for mobile thumbs, bold typography.
+- **Directional Quick-Action CTA Pair:** Paired cash recording triggers situated permanently at the lower thumb zone or dashboard top:
+  - **Cash In ("+ In / Aaya"):** Solid `#0C9B6A` background with crisp white typography.
+  - **Cash Out ("- Out / Gaya"):** Solid `#D6453D` background with crisp white typography.
+- **Secondary / Ghost Buttons:** Transparent surface with `1.5px solid #E2E6EE`, `#141B2D` text, active feedback via a 2% slate overlay.
+
+### Cards
+- Standard balance sheets and customer accounts live within `#FFFFFF` cards with an 18px radius, `1px solid #E2E6EE` borders, and Level 1 soft shadows.
+- Inner padding strictly uses `1.25rem` (`space-lg`).
+
+### Ledger Transaction Lists
+- Row items show party name, payment mode badge (UPI, Cash, Khata), timestamp, and aligned amount.
+- Inflow entries render the amount in bold `#0C9B6A` with a leading `+`.
+- Outflow entries render the amount in bold `#D6453D` with a leading `-`.
+- Adjacent rows are separated by thin horizontal dividers (`#E2E6EE`) with left-aligned inset matching the text start.
+
+### Chips & Filter Tags
+- Height: 34px, pill-shaped (`9999px`).
+- Inactive state: `#FFFFFF` card background, `#637083` text, `1px solid #E2E6EE`.
+- Active state: `#3B5BDB` tint (`#EEF2FF`), `#3B5BDB` text, `1px solid #3B5BDB`.
+
+### Form Inputs & Numeric Keypads
+- Amount input fields display extra-large numbers (`display-lg-mobile`) with a permanent `₹` prefix in `#637083`.
+- Input containers feature `#FFFFFF` background, 12px radius, and a `1.5px solid #E2E6EE` frame that transitions to `#3B5BDB` upon focus.
+
+### Mobile Bottom Navigation Bar
+- Fixed bottom dock featuring 4 primary sections: **Today**, **Udhaar**, **Reports**, and **Settings**.
+- Height: 64px + safe area inset.
+- Background: `#FFFFFF` with upward ambient shadow and top border.
+- Active tab displays an indigo icon and label (`#3B5BDB`); inactive tabs display muted gray (`#637083`).
