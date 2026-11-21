@@ -85,7 +85,7 @@ export const LoginScreen: React.FC = () => {
       <header className="border-b border-[#E2E6EE] bg-white">
         <div className="mx-auto flex h-16 max-w-[1120px] items-center justify-between px-4 sm:px-6">
           <span className="text-[20px] font-bold tracking-[-0.02em] text-[#141B2D]">
-            Daybook
+            Rokad Book
           </span>
           <span className="text-xs font-semibold text-[#637083]">
             Mercantile Cashbook &amp; Udhaar Khata
@@ -367,10 +367,10 @@ export const LoginScreen: React.FC = () => {
               {legalModalTab === 'terms' ? (
                 <div className="space-y-3.5">
                   <h3 className="text-base font-bold text-[#141B2D]">
-                    Daybook Mercantile Ledger — Terms of Use
+                    Rokad Book — Terms of Use
                   </h3>
                   <p>
-                    By signing in and using Daybook Mercantile Ledger, you agree to use the application for lawful business cashbook and credit (udhaar) record-keeping.
+                    By signing in and using Rokad Book, you agree to use the application for lawful business cashbook and credit (udhaar) record-keeping.
                   </p>
                   <div>
                     <p className="font-semibold text-[#141B2D]">1. Account &amp; Access</p>
@@ -381,7 +381,7 @@ export const LoginScreen: React.FC = () => {
                   <div>
                     <p className="font-semibold text-[#141B2D]">2. Accuracy of Financial Records</p>
                     <p className="mt-0.5">
-                      Daybook is a digital bookkeeping aid and does not replace a Chartered Accountant or statutory GST/tax filing software. Always verify totals and export regular CSV backups for compliance.
+                      Rokad Book is a digital bookkeeping aid and does not replace a Chartered Accountant or statutory GST/tax filing software. Always verify totals and export regular CSV backups for compliance.
                     </p>
                   </div>
                   <div>
@@ -394,7 +394,7 @@ export const LoginScreen: React.FC = () => {
               ) : (
                 <div className="space-y-3.5">
                   <h3 className="text-base font-bold text-[#141B2D]">
-                    Daybook Mercantile Ledger — Privacy Policy
+                    Rokad Book — Privacy Policy
                   </h3>
                   <p>
                     We respect your privacy and collect only the information needed to operate your private digital cashbook and khata ledger.

@@ -58,7 +58,7 @@ export class ErrorBoundary extends React.Component<
               className="mt-6 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[12px] bg-[#3B5BDB] px-5 text-sm font-bold text-white hover:bg-[#1A40C2]"
             >
               <RotateCcw className="h-4 w-4" />
-              <span>Reload Daybook</span>
+              <span>Reload Rokad Book</span>
             </button>
           </div>
         </div>

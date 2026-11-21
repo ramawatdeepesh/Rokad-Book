@@ -402,7 +402,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
             placeholder="Search party, category, note, or bill no..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search daybook transactions"
+            aria-label="Search Rokad Book transactions"
             className="h-[44px] w-full bg-transparent text-sm text-[#141B2D] outline-none placeholder:text-[#94A3B8]"
           />
           {searchQuery && (

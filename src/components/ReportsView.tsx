@@ -293,7 +293,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>${escapeHtml(settings.shopName)} — Daybook Statement (${escapeHtml(periodLabel)})</title>
+  <title>${escapeHtml(settings.shopName)} — Rokad Book Statement (${escapeHtml(periodLabel)})</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -354,7 +354,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       ${settings.address ? `<p class="meta">${escapeHtml(settings.address)}</p>` : ''}
     </div>
     <div style="text-align:right;">
-      <div style="font-weight:700;font-size:15px;">${range === 'daily' ? 'Daily Rojmel Report' : 'Daybook Ledger Report'}</div>
+      <div style="font-weight:700;font-size:15px;">${range === 'daily' ? 'Daily Rojmel Report' : 'Rokad Book Ledger Report'}</div>
       <div class="meta">${escapeHtml(periodLabel)}</div>
       <div class="meta">Generated: ${escapeHtml(generatedOn)}</div>
     </div>
@@ -391,7 +391,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   </table>
 
   <div class="footer">
-    <span>Daybook Mercantile Ledger</span>
+    <span>Rokad Book</span>
     <span>Opening Cash Base: ${escapeHtml(formatINR(settings.openingCashBalance, { showDecimals: dec }))}</span>
   </div>
 </body>
@@ -444,8 +444,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     a.href = url;
     a.download =
       range === 'daily'
-        ? `daybook-daily-statement-${reportDate}.html`
-        : `daybook-statement-${range}-${todayStr}.html`;
+        ? `rokad-book-daily-statement-${reportDate}.html`
+        : `rokad-book-statement-${range}-${todayStr}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -467,8 +467,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     ]);
     downloadCSV(
       range === 'daily'
-        ? `daybook-daily-report-${reportDate}.csv`
-        : `daybook-report-${range}-${todayStr}.csv`,
+        ? `rokad-book-daily-report-${reportDate}.csv`
+        : `rokad-book-report-${range}-${todayStr}.csv`,
       [
         'Date',
         'Time',
@@ -1061,7 +1061,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           className="no-print fixed inset-0 z-50 flex items-end justify-center bg-[#141B2D]/50 backdrop-blur-[2px] sm:items-center sm:p-4"
           role="dialog"
           aria-modal="true"
-          aria-label="Print Daybook Report Preview"
+          aria-label="Print Rokad Book Report Preview"
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowPrintPreview(false);
           }}
@@ -1110,7 +1110,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                   </div>
                   <div className="text-left sm:text-right">
                     <p className="text-sm font-bold text-[#141B2D]">
-                      {range === 'daily' ? 'Daily Rojmel Statement' : 'Daybook Statement'}
+                      {range === 'daily' ? 'Daily Rojmel Statement' : 'Rokad Book Statement'}
                     </p>
                     <p className="text-xs text-[#637083]">{periodLabel}</p>
                     <p className="tnum text-xs text-[#637083]">

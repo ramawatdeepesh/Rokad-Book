@@ -123,7 +123,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
         <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-y-auto">
           <div className="space-y-4 p-5 sm:p-6">
             <p className="text-sm leading-5 text-[#637083]">
-              Enter your store details and current cash-in-hand to initialize your clean, private Daybook ledger.
+              Enter your store details and current cash-in-hand to initialize your clean, private Rokad Book ledger.
             </p>
 
             {errorMsg && (
@@ -358,7 +358,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
               className="flex min-h-[52px] w-full items-center justify-center gap-2 rounded-[12px] bg-[#3B5BDB] px-5 text-sm font-bold text-white transition-all hover:bg-[#1A40C2] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
             >
               <Check className="h-4 w-4" />
-              <span>{submitting ? 'Creating Your Ledger...' : 'Complete Setup & Open Daybook'}</span>
+              <span>{submitting ? 'Creating Your Ledger...' : 'Complete Setup & Open Rokad Book'}</span>
             </button>
           </div>
         </form>

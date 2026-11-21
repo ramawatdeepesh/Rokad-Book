@@ -483,7 +483,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `daybook-backup-${getLocalDateString(0)}.json`;
+    a.download = `rokad-book-backup-${getLocalDateString(0)}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -525,7 +525,7 @@ export default function App() {
             onClick={() => setActiveTab('today')}
             className="text-[20px] font-bold tracking-[-0.02em] text-[#141B2D] whitespace-nowrap shrink-0"
           >
-            Daybook
+            Rokad Book
           </button>
 
           <nav
