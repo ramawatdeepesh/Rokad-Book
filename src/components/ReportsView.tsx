@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
   Download,
   FileText,
   Printer,
@@ -8,11 +11,13 @@ import {
   Banknote,
   Smartphone,
   BookOpen,
+  Wallet,
   X,
 } from 'lucide-react';
 import { ShopSettings, Transaction } from '../types/ledger';
 import {
   downloadCSV,
+  formatDisplayDate,
   formatDisplayTime,
   formatINR,
   formatINRCompact,
@@ -20,6 +25,8 @@ import {
   formatShortDate,
   getLocalDateString,
 } from '../utils/formatters';
+import { computeDailySummary } from '../utils/ledgerMath';
+import { CalendarPicker } from './CalendarPicker';
 
 interface ReportsViewProps {
   transactions: Transaction[];
@@ -27,14 +34,7 @@ interface ReportsViewProps {
   onNotify: (msg: string) => void;
 }
 
-type RangeFilter = '7d' | '14d' | '30d' | 'all';
-
-const RANGE_LABELS: Record<RangeFilter, string> = {
-  '7d': 'Last 7 Days',
-  '14d': 'Last 14 Days',
-  '30d': 'Last 30 Days',
-  all: 'All Recorded Entries',
-};
+type RangeFilter = 'daily' | '7d' | '14d' | '30d' | 'all';
 
 function escapeHtml(str: string): string {
   return str
@@ -49,24 +49,67 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
   settings,
   onNotify,
 }) => {
-  const [range, setRange] = useState<RangeFilter>('7d');
+  const todayStr = getLocalDateString(0);
+  const [range, setRange] = useState<RangeFilter>('daily');
+  const [reportDate, setReportDate] = useState<string>(todayStr);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [hoveredDay, setHoveredDay] = useState<string | null>(null);
   const [showPrintPreview, setShowPrintPreview] = useState(false);
 
   const dec = settings.showPaiseDecimals;
 
+  const activeDates = useMemo(() => {
+    const set = new Set<string>();
+    for (const tx of transactions) {
+      set.add(tx.date);
+    }
+    return set;
+  }, [transactions]);
+
+  const stepReportDate = (deltaDays: number) => {
+    const [y, m, d] = reportDate.split('-').map(Number);
+    const dt = new Date(y, (m || 1) - 1, d || 1);
+    dt.setDate(dt.getDate() + deltaDays);
+    const nextStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+    if (nextStr <= todayStr) {
+      setReportDate(nextStr);
+    }
+  };
+
+  const periodLabel = useMemo(() => {
+    if (range === 'daily') {
+      return `Daily Report · ${formatDisplayDate(reportDate)} (${reportDate})`;
+    }
+    if (range === '7d') return 'Last 7 Days';
+    if (range === '14d') return 'Last 14 Days';
+    if (range === '30d') return 'Last 30 Days';
+    return 'All Recorded Entries';
+  }, [range, reportDate]);
+
+  const dailySummary = useMemo(
+    () =>
+      computeDailySummary(
+        transactions,
+        reportDate,
+        settings.openingCashBalance
+      ),
+    [transactions, reportDate, settings.openingCashBalance]
+  );
+
   const filteredTx = useMemo(() => {
     const base =
-      range === 'all'
-        ? transactions
-        : transactions.filter((tx) => {
-            const days = range === '7d' ? 6 : range === '14d' ? 13 : 29;
-            return tx.date >= getLocalDateString(-days);
-          });
+      range === 'daily'
+        ? transactions.filter((tx) => tx.date === reportDate)
+        : range === 'all'
+          ? transactions
+          : transactions.filter((tx) => {
+              const days = range === '7d' ? 6 : range === '14d' ? 13 : 29;
+              return tx.date >= getLocalDateString(-days);
+            });
     return [...base].sort(
       (a, b) => b.date.localeCompare(a.date) || b.time.localeCompare(a.time)
     );
-  }, [transactions, range]);
+  }, [transactions, range, reportDate]);
 
   const metrics = useMemo(() => {
     let totalIn = 0;
@@ -209,11 +252,48 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             )
             .join('');
 
+    const printKpisHtml =
+      range === 'daily'
+        ? `
+  <div class="kpis kpis-4">
+    <div class="kpi">
+      <div class="kpi-label">Opening Balance</div>
+      <div class="kpi-val">${escapeHtml(formatINR(dailySummary.openingBalance, { showDecimals: dec }))}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total Cash In (Jama)</div>
+      <div class="kpi-val in">${escapeHtml(formatINR(dailySummary.cashIn, { direction: 'in', showDecimals: dec }))}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total Cash Out (Naam)</div>
+      <div class="kpi-val out">${escapeHtml(formatINR(dailySummary.cashOut, { direction: 'out', showDecimals: dec }))}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Closing Balance (Rokad Baki)</div>
+      <div class="kpi-val">${escapeHtml(formatINR(dailySummary.closingBalance, { showDecimals: dec }))}</div>
+    </div>
+  </div>`
+        : `
+  <div class="kpis">
+    <div class="kpi">
+      <div class="kpi-label">Total Cash In (Jama)</div>
+      <div class="kpi-val in">${escapeHtml(formatINR(metrics.totalIn, { direction: 'in', showDecimals: dec }))}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Total Cash Out (Naam)</div>
+      <div class="kpi-val out">${escapeHtml(formatINR(metrics.totalOut, { direction: 'out', showDecimals: dec }))}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Net Cash Surplus</div>
+      <div class="kpi-val">${escapeHtml(formatINR(metrics.netSurplus, { signed: true, showDecimals: dec }))}</div>
+    </div>
+  </div>`;
+
     return `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>${escapeHtml(settings.shopName)} — Daybook Statement (${escapeHtml(RANGE_LABELS[range])})</title>
+  <title>${escapeHtml(settings.shopName)} — Daybook Statement (${escapeHtml(periodLabel)})</title>
   <style>
     * { box-sizing: border-box; }
     body {
@@ -241,13 +321,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       gap: 12px;
       margin-bottom: 22px;
     }
+    .kpis-4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
     .kpi {
       border: 1px solid #E2E6EE;
       border-radius: 10px;
       padding: 12px 14px;
     }
     .kpi-label { font-size: 11px; font-weight: 600; color: #637083; text-transform: uppercase; letter-spacing: 0.04em; }
-    .kpi-val { font-size: 20px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+    .kpi-val { font-size: 18px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
     .in { color: #0C9B6A; }
     .out { color: #D6453D; }
     h2 { font-size: 15px; font-weight: 700; margin: 20px 0 8px 0; }
@@ -271,26 +354,13 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       ${settings.address ? `<p class="meta">${escapeHtml(settings.address)}</p>` : ''}
     </div>
     <div style="text-align:right;">
-      <div style="font-weight:700;font-size:15px;">Daybook Ledger Report</div>
-      <div class="meta">Period: ${escapeHtml(RANGE_LABELS[range])}</div>
+      <div style="font-weight:700;font-size:15px;">${range === 'daily' ? 'Daily Rojmel Report' : 'Daybook Ledger Report'}</div>
+      <div class="meta">${escapeHtml(periodLabel)}</div>
       <div class="meta">Generated: ${escapeHtml(generatedOn)}</div>
     </div>
   </div>
 
-  <div class="kpis">
-    <div class="kpi">
-      <div class="kpi-label">Total Cash In (Jama)</div>
-      <div class="kpi-val in">${escapeHtml(formatINR(metrics.totalIn, { direction: 'in', showDecimals: dec }))}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Total Cash Out (Naam)</div>
-      <div class="kpi-val out">${escapeHtml(formatINR(metrics.totalOut, { direction: 'out', showDecimals: dec }))}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Net Cash Surplus</div>
-      <div class="kpi-val">${escapeHtml(formatINR(metrics.netSurplus, { signed: true, showDecimals: dec }))}</div>
-    </div>
-  </div>
+  ${printKpisHtml}
 
   <h2>Category Summary</h2>
   <table>
@@ -372,7 +442,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `daybook-statement-${range}-${getLocalDateString(0)}.html`;
+    a.download =
+      range === 'daily'
+        ? `daybook-daily-statement-${reportDate}.html`
+        : `daybook-statement-${range}-${todayStr}.html`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -393,7 +466,9 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
       tx.amount,
     ]);
     downloadCSV(
-      `daybook-report-${range}-${getLocalDateString(0)}.csv`,
+      range === 'daily'
+        ? `daybook-daily-report-${reportDate}.csv`
+        : `daybook-report-${range}-${todayStr}.csv`,
       [
         'Date',
         'Time',
@@ -417,6 +492,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         <div className="no-scrollbar flex items-center gap-2 overflow-x-auto">
           {(
             [
+              { id: 'daily', label: 'Daily Report' },
               { id: '7d', label: 'Last 7 Days' },
               { id: '14d', label: 'Last 14 Days' },
               { id: '30d', label: 'Last 30 Days' },
@@ -461,193 +537,407 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
         </div>
       </div>
 
+      {/* Daily Report Date Selector Strip */}
+      {range === 'daily' && (
+        <div className="card-ledger flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => stepReportDate(-1)}
+              aria-label="Previous day report"
+              className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#E2E6EE] bg-white text-[#141B2D] transition-colors hover:border-[#3B5BDB] hover:text-[#3B5BDB]"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowCalendar(true)}
+              aria-label="Select daily report date"
+              className="flex min-h-[40px] items-center gap-2 rounded-[10px] border border-[#E2E6EE] bg-white px-3.5 text-sm font-semibold text-[#141B2D] transition-colors hover:border-[#3B5BDB] hover:text-[#3B5BDB]"
+            >
+              <Calendar className="h-4 w-4 text-[#3B5BDB]" />
+              <span className="tnum whitespace-nowrap">
+                {formatDisplayDate(reportDate)}
+              </span>
+              <span className="tnum hidden text-xs font-medium text-[#637083] sm:inline">
+                · {reportDate}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => stepReportDate(1)}
+              disabled={reportDate >= todayStr}
+              aria-label="Next day report"
+              className="flex h-10 w-10 items-center justify-center rounded-[10px] border border-[#E2E6EE] bg-white text-[#141B2D] transition-colors hover:border-[#3B5BDB] hover:text-[#3B5BDB] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+
+            {reportDate !== todayStr && (
+              <button
+                type="button"
+                onClick={() => setReportDate(todayStr)}
+                className="ml-1 min-h-[36px] rounded-full border border-[#3B5BDB]/30 bg-[#EEF2FF] px-3 text-xs font-semibold text-[#3B5BDB] transition-colors hover:bg-[#E0E7FF]"
+              >
+                Today
+              </button>
+            )}
+          </div>
+
+          <p className="tnum text-xs font-medium text-[#637083]">
+            {filteredTx.length} {filteredTx.length === 1 ? 'entry' : 'entries'} · Day Net{' '}
+            <span
+              className={`font-bold ${
+                dailySummary.netDayFlow >= 0 ? 'text-[#0C9B6A]' : 'text-[#D6453D]'
+              }`}
+            >
+              {formatINR(dailySummary.netDayFlow, { signed: true, showDecimals: dec })}
+            </span>
+          </p>
+        </div>
+      )}
+
       {/* Period Summary KPIs */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="card-ledger p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-[#637083]">
-              {settings.showBilingualTerms ? 'Total Cash In (Jama)' : 'Total Inflow'}
+      {range === 'daily' ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="card-ledger p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-[#637083]">
+                Opening Balance
+              </p>
+              <Wallet className="h-4 w-4 text-[#637083]" />
+            </div>
+            <p className="tnum mt-2 text-[22px] font-bold leading-[28px] text-[#141B2D]">
+              {formatINR(dailySummary.openingBalance, { showDecimals: dec })}
             </p>
-            <TrendingUp className="h-4 w-4 text-[#0C9B6A]" />
-          </div>
-          <p className="tnum mt-2 text-[24px] font-bold leading-[30px] text-[#0C9B6A]">
-            {formatINR(metrics.totalIn, { direction: 'in', showDecimals: dec })}
-          </p>
-          <p className="tnum mt-1 text-xs text-[#637083]">
-            Cash + UPI inflows received
-          </p>
-        </div>
-
-        <div className="card-ledger p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-semibold text-[#637083]">
-              {settings.showBilingualTerms ? 'Total Cash Out (Naam)' : 'Total Outflow'}
+            <p className="mt-1 text-xs text-[#637083]">
+              Carried forward before {formatShortDate(reportDate)}
             </p>
-            <TrendingDown className="h-4 w-4 text-[#D6453D]" />
           </div>
-          <p className="tnum mt-2 text-[24px] font-bold leading-[30px] text-[#D6453D]">
-            {formatINR(metrics.totalOut, { direction: 'out', showDecimals: dec })}
-          </p>
-          <p className="tnum mt-1 text-xs text-[#637083]">
-            Stock, payouts &amp; shop expenses
-          </p>
-        </div>
 
-        <div className="card-ledger p-5">
-          <p className="text-xs font-semibold text-[#637083]">
-            {settings.showBilingualTerms ? 'Net Cash Surplus (Bachat)' : 'Net Cash Surplus'}
-          </p>
-          <p
-            className={`tnum mt-2 text-[24px] font-bold leading-[30px] ${
-              metrics.netSurplus >= 0 ? 'text-[#141B2D]' : 'text-[#D6453D]'
-            }`}
-          >
-            {formatINR(metrics.netSurplus, { signed: true, showDecimals: dec })}
-          </p>
-          <p className="tnum mt-1 text-xs text-[#637083]">
-            Across {filteredTx.length} recorded entries
-          </p>
+          <div className="card-ledger p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-[#637083]">
+                {settings.showBilingualTerms ? 'Total Cash In (Jama)' : 'Day Inflow'}
+              </p>
+              <TrendingUp className="h-4 w-4 text-[#0C9B6A]" />
+            </div>
+            <p className="tnum mt-2 text-[22px] font-bold leading-[28px] text-[#0C9B6A]">
+              {formatINR(dailySummary.cashIn, { direction: 'in', showDecimals: dec })}
+            </p>
+            <p className="tnum mt-1 text-xs text-[#637083]">
+              Cash {formatINR(dailySummary.dayCashInOnly)} · UPI {formatINR(dailySummary.dayUpiInOnly)}
+            </p>
+          </div>
+
+          <div className="card-ledger p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-[#637083]">
+                {settings.showBilingualTerms ? 'Total Cash Out (Naam)' : 'Day Outflow'}
+              </p>
+              <TrendingDown className="h-4 w-4 text-[#D6453D]" />
+            </div>
+            <p className="tnum mt-2 text-[22px] font-bold leading-[28px] text-[#D6453D]">
+              {formatINR(dailySummary.cashOut, { direction: 'out', showDecimals: dec })}
+            </p>
+            <p className="tnum mt-1 text-xs text-[#637083]">
+              Cash {formatINR(dailySummary.dayCashOutOnly)} · UPI {formatINR(dailySummary.dayUpiOutOnly)}
+            </p>
+          </div>
+
+          <div className="card-ledger p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-[#637083]">
+                {settings.showBilingualTerms ? 'Closing Balance (Rokad Baki)' : 'Closing Balance'}
+              </p>
+              <Banknote className="h-4 w-4 text-[#3B5BDB]" />
+            </div>
+            <p
+              className={`tnum mt-2 text-[22px] font-bold leading-[28px] ${
+                dailySummary.closingBalance >= 0 ? 'text-[#141B2D]' : 'text-[#D6453D]'
+              }`}
+            >
+              {formatINR(dailySummary.closingBalance, { showDecimals: dec })}
+            </p>
+            <p className="tnum mt-1 text-xs text-[#637083]">
+              Net flow {formatINR(dailySummary.netDayFlow, { signed: true, showDecimals: dec })}
+            </p>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="card-ledger p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-[#637083]">
+                {settings.showBilingualTerms ? 'Total Cash In (Jama)' : 'Total Inflow'}
+              </p>
+              <TrendingUp className="h-4 w-4 text-[#0C9B6A]" />
+            </div>
+            <p className="tnum mt-2 text-[24px] font-bold leading-[30px] text-[#0C9B6A]">
+              {formatINR(metrics.totalIn, { direction: 'in', showDecimals: dec })}
+            </p>
+            <p className="tnum mt-1 text-xs text-[#637083]">
+              Cash + UPI inflows received
+            </p>
+          </div>
+
+          <div className="card-ledger p-5">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-[#637083]">
+                {settings.showBilingualTerms ? 'Total Cash Out (Naam)' : 'Total Outflow'}
+              </p>
+              <TrendingDown className="h-4 w-4 text-[#D6453D]" />
+            </div>
+            <p className="tnum mt-2 text-[24px] font-bold leading-[30px] text-[#D6453D]">
+              {formatINR(metrics.totalOut, { direction: 'out', showDecimals: dec })}
+            </p>
+            <p className="tnum mt-1 text-xs text-[#637083]">
+              Stock, payouts &amp; shop expenses
+            </p>
+          </div>
+
+          <div className="card-ledger p-5">
+            <p className="text-xs font-semibold text-[#637083]">
+              {settings.showBilingualTerms ? 'Net Cash Surplus (Bachat)' : 'Net Cash Surplus'}
+            </p>
+            <p
+              className={`tnum mt-2 text-[24px] font-bold leading-[30px] ${
+                metrics.netSurplus >= 0 ? 'text-[#141B2D]' : 'text-[#D6453D]'
+              }`}
+            >
+              {formatINR(metrics.netSurplus, { signed: true, showDecimals: dec })}
+            </p>
+            <p className="tnum mt-1 text-xs text-[#637083]">
+              Across {filteredTx.length} recorded entries
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Main Analytics Grid */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-12 lg:gap-5">
-        {/* 7-Day Cash In vs Cash Out Chart */}
-        <section className="card-ledger p-5 lg:col-span-7">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h2 className="text-[18px] font-semibold text-[#141B2D]">
-                7-Day Cashflow Comparison
-              </h2>
-              <p className="mt-0.5 text-xs text-[#637083]">
-                Tap or hover any day to inspect inflows and outflows
-              </p>
-            </div>
-            <div className="flex items-center gap-4 text-xs font-semibold text-[#637083]">
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded-[3px] bg-[#0C9B6A]" />
-                Cash In
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="inline-block h-2.5 w-2.5 rounded-[3px] bg-[#D6453D]" />
-                Cash Out
+        {range === 'daily' ? (
+          /* Daily Itemized Rojmel Register */
+          <section className="card-ledger overflow-hidden lg:col-span-7">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E2E6EE] p-5">
+              <div>
+                <h2 className="text-[18px] font-semibold text-[#141B2D]">
+                  {settings.showBilingualTerms
+                    ? 'Daily Rojmel Register'
+                    : 'Daily Itemized Register'}
+                </h2>
+                <p className="mt-0.5 text-xs text-[#637083]">
+                  All inflows and outflows recorded on {formatDisplayDate(reportDate)}
+                </p>
+              </div>
+              <span className="tnum rounded-full bg-[#F2F4F8] px-3 py-1 text-xs font-semibold text-[#141B2D]">
+                {filteredTx.length} {filteredTx.length === 1 ? 'entry' : 'entries'}
               </span>
             </div>
-          </div>
 
-          {activeTooltipDay && (
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-[12px] bg-[#F2F4F8]/80 px-3.5 py-2.5 text-xs">
-              <span className="font-semibold text-[#141B2D]">
-                {activeTooltipDay.label}
-              </span>
-              <div className="tnum flex flex-wrap items-center gap-3 font-semibold">
-                <span className="text-[#0C9B6A]">
-                  In: {formatINR(activeTooltipDay.cashIn)}
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[460px] border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b border-[#E2E6EE] bg-[#F2F4F8]/60 font-semibold text-[#637083]">
+                    <th className="px-4 py-3">Time</th>
+                    <th className="px-3 py-3">Party &amp; Note</th>
+                    <th className="px-3 py-3">Category</th>
+                    <th className="px-3 py-3">Mode</th>
+                    <th className="px-4 py-3 text-right">Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#E2E6EE]">
+                  {filteredTx.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-5 py-12 text-center text-sm text-[#637083]">
+                        No entries recorded for {formatDisplayDate(reportDate)}.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredTx.map((tx) => (
+                      <tr key={tx.id} className="hover:bg-[#F2F4F8]/40">
+                        <td className="tnum whitespace-nowrap px-4 py-3 text-[#637083]">
+                          {formatDisplayTime(tx.time)}
+                        </td>
+                        <td className="px-3 py-3">
+                          <p className="font-semibold text-[#141B2D]">{tx.partyName}</p>
+                          {(tx.note || tx.billNo) && (
+                            <p className="mt-0.5 text-[11px] text-[#637083]">
+                              {[tx.billNo, tx.note].filter(Boolean).join(' · ')}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 text-[#637083]">{tx.category}</td>
+                        <td className="px-3 py-3 font-semibold text-[#141B2D]">
+                          {tx.paymentMode}
+                        </td>
+                        <td
+                          className={`tnum whitespace-nowrap px-4 py-3 text-right font-bold ${
+                            tx.direction === 'in' ? 'text-[#0C9B6A]' : 'text-[#D6453D]'
+                          }`}
+                        >
+                          {formatINR(tx.amount, {
+                            direction: tx.direction,
+                            showDecimals: dec,
+                          })}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        ) : (
+          /* 7-Day Cash In vs Cash Out Chart */
+          <section className="card-ledger p-5 lg:col-span-7">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-[18px] font-semibold text-[#141B2D]">
+                  7-Day Cashflow Comparison
+                </h2>
+                <p className="mt-0.5 text-xs text-[#637083]">
+                  Tap or hover any day to inspect inflows and outflows
+                </p>
+              </div>
+              <div className="flex items-center gap-4 text-xs font-semibold text-[#637083]">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-[3px] bg-[#0C9B6A]" />
+                  Cash In
                 </span>
-                <span className="text-[#D6453D]">
-                  Out: {formatINR(activeTooltipDay.cashOut)}
-                </span>
-                <span className="text-[#141B2D]">
-                  Net: {formatINR(activeTooltipDay.net, { signed: true })}
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-[3px] bg-[#D6453D]" />
+                  Cash Out
                 </span>
               </div>
             </div>
-          )}
 
-          <div className="mt-4 w-full overflow-x-auto">
-            <svg
-              viewBox="0 0 560 220"
-              className="h-auto w-full min-w-[340px]"
-              role="img"
-              aria-label="7-day cash inflow and outflow bar chart"
-            >
-              {[0, 0.25, 0.5, 0.75, 1].map((step) => {
-                const y = 180 - step * 150;
-                const val = maxChartVal * step;
-                return (
-                  <g key={step}>
-                    <line
-                      x1="58"
-                      y1={y}
-                      x2="548"
-                      y2={y}
-                      stroke="#E2E6EE"
-                      strokeWidth="1"
-                      strokeDasharray={step === 0 ? undefined : '3 3'}
-                    />
-                    <text
-                      x="50"
-                      y={y + 4}
-                      textAnchor="end"
-                      fill="#637083"
-                      fontSize="10"
-                      fontWeight="500"
-                      className="tnum"
-                    >
-                      {formatINRCompact(val)}
-                    </text>
-                  </g>
-                );
-              })}
-
-              {dailySeries.map((day, idx) => {
-                const groupWidth = (548 - 64) / 7;
-                const centerX = 64 + groupWidth * idx + groupWidth / 2;
-                const barW = 16;
-                const inH = Math.max(2, (day.cashIn / maxChartVal) * 150);
-                const outH = Math.max(2, (day.cashOut / maxChartVal) * 150);
-                const isSelected = activeTooltipDay?.date === day.date;
-
-                return (
-                  <g
-                    key={day.date}
-                    className="cursor-pointer"
-                    onMouseEnter={() => setHoveredDay(day.date)}
-                    onClick={() => setHoveredDay(day.date)}
+            {activeTooltipDay && (
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-[12px] bg-[#F2F4F8]/80 px-3.5 py-2.5 text-xs">
+                <span className="font-semibold text-[#141B2D]">
+                  {activeTooltipDay.label}
+                </span>
+                <div className="tnum flex flex-wrap items-center gap-3 font-semibold">
+                  <span className="text-[#0C9B6A]">
+                    In: {formatINR(activeTooltipDay.cashIn)}
+                  </span>
+                  <span className="text-[#D6453D]">
+                    Out: {formatINR(activeTooltipDay.cashOut)}
+                  </span>
+                  <span className="text-[#141B2D]">
+                    Net: {formatINR(activeTooltipDay.net, { signed: true })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportDate(activeTooltipDay.date);
+                      setRange('daily');
+                    }}
+                    className="font-bold text-[#3B5BDB] hover:underline"
                   >
-                    {isSelected && (
-                      <rect
-                        x={centerX - 24}
-                        y={22}
-                        width={48}
-                        height={162}
-                        rx="8"
-                        fill="#EEF2FF"
-                        opacity="0.7"
+                    Open Daily Report →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 w-full overflow-x-auto">
+              <svg
+                viewBox="0 0 560 220"
+                className="h-auto w-full min-w-[340px]"
+                role="img"
+                aria-label="7-day cash inflow and outflow bar chart"
+              >
+                {[0, 0.25, 0.5, 0.75, 1].map((step) => {
+                  const y = 180 - step * 150;
+                  const val = maxChartVal * step;
+                  return (
+                    <g key={step}>
+                      <line
+                        x1="58"
+                        y1={y}
+                        x2="548"
+                        y2={y}
+                        stroke="#E2E6EE"
+                        strokeWidth="1"
+                        strokeDasharray={step === 0 ? undefined : '3 3'}
                       />
-                    )}
-                    <rect
-                      x={centerX - barW - 2}
-                      y={180 - inH}
-                      width={barW}
-                      height={inH}
-                      rx="4"
-                      fill="#0C9B6A"
-                    />
-                    <rect
-                      x={centerX + 2}
-                      y={180 - outH}
-                      width={barW}
-                      height={outH}
-                      rx="4"
-                      fill="#D6453D"
-                    />
-                    <text
-                      x={centerX}
-                      y="202"
-                      textAnchor="middle"
-                      fill={isSelected ? '#3B5BDB' : '#637083'}
-                      fontSize="11"
-                      fontWeight={isSelected ? '700' : '500'}
+                      <text
+                        x="50"
+                        y={y + 4}
+                        textAnchor="end"
+                        fill="#637083"
+                        fontSize="10"
+                        fontWeight="500"
+                        className="tnum"
+                      >
+                        {formatINRCompact(val)}
+                      </text>
+                    </g>
+                  );
+                })}
+
+                {dailySeries.map((day, idx) => {
+                  const groupWidth = (548 - 64) / 7;
+                  const centerX = 64 + groupWidth * idx + groupWidth / 2;
+                  const barW = 16;
+                  const inH = Math.max(2, (day.cashIn / maxChartVal) * 150);
+                  const outH = Math.max(2, (day.cashOut / maxChartVal) * 150);
+                  const isSelected = activeTooltipDay?.date === day.date;
+
+                  return (
+                    <g
+                      key={day.date}
+                      className="cursor-pointer"
+                      onMouseEnter={() => setHoveredDay(day.date)}
+                      onClick={() => setHoveredDay(day.date)}
                     >
-                      {day.label}
-                    </text>
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
-        </section>
+                      {isSelected && (
+                        <rect
+                          x={centerX - 24}
+                          y={22}
+                          width={48}
+                          height={162}
+                          rx="8"
+                          fill="#EEF2FF"
+                          opacity="0.7"
+                        />
+                      )}
+                      <rect
+                        x={centerX - barW - 2}
+                        y={180 - inH}
+                        width={barW}
+                        height={inH}
+                        rx="4"
+                        fill="#0C9B6A"
+                      />
+                      <rect
+                        x={centerX + 2}
+                        y={180 - outH}
+                        width={barW}
+                        height={outH}
+                        rx="4"
+                        fill="#D6453D"
+                      />
+                      <text
+                        x={centerX}
+                        y="202"
+                        textAnchor="middle"
+                        fill={isSelected ? '#3B5BDB' : '#637083'}
+                        fontSize="11"
+                        fontWeight={isSelected ? '700' : '500'}
+                      >
+                        {day.label}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          </section>
+        )}
 
         {/* Payment Mode Distribution */}
         <section className="card-ledger p-5 lg:col-span-5">
@@ -785,7 +1075,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     Print Statement Preview
                   </h3>
                   <p className="text-xs text-[#637083]">
-                    {RANGE_LABELS[range]} · {filteredTx.length} entries
+                    {periodLabel} · {filteredTx.length} entries
                   </p>
                 </div>
               </div>
@@ -819,35 +1109,66 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                     )}
                   </div>
                   <div className="text-left sm:text-right">
-                    <p className="text-sm font-bold text-[#141B2D]">Daybook Statement</p>
-                    <p className="text-xs text-[#637083]">{RANGE_LABELS[range]}</p>
+                    <p className="text-sm font-bold text-[#141B2D]">
+                      {range === 'daily' ? 'Daily Rojmel Statement' : 'Daybook Statement'}
+                    </p>
+                    <p className="text-xs text-[#637083]">{periodLabel}</p>
                     <p className="tnum text-xs text-[#637083]">
-                      Date: {getLocalDateString(0)}
+                      Generated: {todayStr}
                     </p>
                   </div>
                 </div>
 
                 {/* Statement KPIs */}
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                  <div className="rounded-[10px] border border-[#E2E6EE] p-3">
-                    <p className="text-[11px] font-semibold text-[#637083]">Total Cash In</p>
-                    <p className="tnum mt-1 text-lg font-bold text-[#0C9B6A]">
-                      {formatINR(metrics.totalIn, { direction: 'in', showDecimals: dec })}
-                    </p>
+                {range === 'daily' ? (
+                  <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div className="rounded-[10px] border border-[#E2E6EE] p-3">
+                      <p className="text-[11px] font-semibold text-[#637083]">Opening</p>
+                      <p className="tnum mt-1 text-base font-bold text-[#141B2D]">
+                        {formatINR(dailySummary.openingBalance, { showDecimals: dec })}
+                      </p>
+                    </div>
+                    <div className="rounded-[10px] border border-[#E2E6EE] p-3">
+                      <p className="text-[11px] font-semibold text-[#637083]">Cash In</p>
+                      <p className="tnum mt-1 text-base font-bold text-[#0C9B6A]">
+                        {formatINR(dailySummary.cashIn, { direction: 'in', showDecimals: dec })}
+                      </p>
+                    </div>
+                    <div className="rounded-[10px] border border-[#E2E6EE] p-3">
+                      <p className="text-[11px] font-semibold text-[#637083]">Cash Out</p>
+                      <p className="tnum mt-1 text-base font-bold text-[#D6453D]">
+                        {formatINR(dailySummary.cashOut, { direction: 'out', showDecimals: dec })}
+                      </p>
+                    </div>
+                    <div className="rounded-[10px] border border-[#E2E6EE] p-3">
+                      <p className="text-[11px] font-semibold text-[#637083]">Closing</p>
+                      <p className="tnum mt-1 text-base font-bold text-[#141B2D]">
+                        {formatINR(dailySummary.closingBalance, { showDecimals: dec })}
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-[10px] border border-[#E2E6EE] p-3">
-                    <p className="text-[11px] font-semibold text-[#637083]">Total Cash Out</p>
-                    <p className="tnum mt-1 text-lg font-bold text-[#D6453D]">
-                      {formatINR(metrics.totalOut, { direction: 'out', showDecimals: dec })}
-                    </p>
+                ) : (
+                  <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="rounded-[10px] border border-[#E2E6EE] p-3">
+                      <p className="text-[11px] font-semibold text-[#637083]">Total Cash In</p>
+                      <p className="tnum mt-1 text-lg font-bold text-[#0C9B6A]">
+                        {formatINR(metrics.totalIn, { direction: 'in', showDecimals: dec })}
+                      </p>
+                    </div>
+                    <div className="rounded-[10px] border border-[#E2E6EE] p-3">
+                      <p className="text-[11px] font-semibold text-[#637083]">Total Cash Out</p>
+                      <p className="tnum mt-1 text-lg font-bold text-[#D6453D]">
+                        {formatINR(metrics.totalOut, { direction: 'out', showDecimals: dec })}
+                      </p>
+                    </div>
+                    <div className="rounded-[10px] border border-[#E2E6EE] p-3">
+                      <p className="text-[11px] font-semibold text-[#637083]">Net Surplus</p>
+                      <p className="tnum mt-1 text-lg font-bold text-[#141B2D]">
+                        {formatINR(metrics.netSurplus, { signed: true, showDecimals: dec })}
+                      </p>
+                    </div>
                   </div>
-                  <div className="rounded-[10px] border border-[#E2E6EE] p-3">
-                    <p className="text-[11px] font-semibold text-[#637083]">Net Surplus</p>
-                    <p className="tnum mt-1 text-lg font-bold text-[#141B2D]">
-                      {formatINR(metrics.netSurplus, { signed: true, showDecimals: dec })}
-                    </p>
-                  </div>
-                </div>
+                )}
 
                 {/* Itemized Table Preview */}
                 <div className="mt-5 overflow-x-auto">
@@ -924,6 +1245,15 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Calendar Picker for Daily Report Date Selection (Future Dates Disabled) */}
+      <CalendarPicker
+        isOpen={showCalendar}
+        selectedDate={reportDate}
+        activeDates={activeDates}
+        onSelectDate={(d) => setReportDate(d)}
+        onClose={() => setShowCalendar(false)}
+      />
     </div>
   );
 };
