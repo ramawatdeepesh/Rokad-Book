@@ -687,7 +687,6 @@ export default function App() {
         parties={parties}
         customCategories={settings.customCategories}
         showBilingualTerms={settings.showBilingualTerms}
-        showNumericKeypad={settings.showNumericKeypad}
         onClose={() =>
           setEntrySheet((prev) => ({
             ...prev,

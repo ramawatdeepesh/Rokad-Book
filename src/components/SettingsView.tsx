@@ -474,12 +474,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 checked: draft.showBilingualTerms,
               },
               {
-                key: 'showNumericKeypad' as const,
-                title: 'Tactile Numeric Keypad',
-                desc: 'Display large one-handed keypad in entry drawer',
-                checked: draft.showNumericKeypad,
-              },
-              {
                 key: 'showPaiseDecimals' as const,
                 title: 'Always Show Paise (.00)',
                 desc: 'Format ₹ 1,250 as ₹ 1,250.00 across ledger rows',

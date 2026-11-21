@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowDownLeft,
   ArrowUpRight,
-  Delete,
   X,
   Check,
   Search,
@@ -38,7 +37,6 @@ interface EntrySheetModalProps {
   parties: Party[];
   customCategories: string[];
   showBilingualTerms: boolean;
-  showNumericKeypad: boolean;
   onClose: () => void;
   onSave: (tx: Omit<Transaction, 'id' | 'createdAt'>, editId?: string) => void;
 }
@@ -55,7 +53,6 @@ export const EntrySheetModal: React.FC<EntrySheetModalProps> = ({
   parties,
   customCategories,
   showBilingualTerms,
-  showNumericKeypad,
   onClose,
   onSave,
 }) => {
@@ -160,32 +157,6 @@ export const EntrySheetModal: React.FC<EntrySheetModalProps> = ({
     } else if (next === 'out' && !outCategories.includes(category)) {
       setCategory(paymentMode === 'Khata' ? 'Udhaar Given' : partyId ? 'Vendor Payout' : 'Shop Expense');
     }
-  };
-
-  const handleKeypadTap = (key: string) => {
-    setErrorMsg(null);
-    if (key === 'BACK') {
-      setAmountStr((prev) => prev.slice(0, -1));
-      return;
-    }
-    if (key === 'CLEAR') {
-      setAmountStr('');
-      return;
-    }
-    if (key === '.') {
-      setAmountStr((prev) => {
-        if (prev.includes('.')) return prev;
-        return prev === '' ? '0.' : prev + '.';
-      });
-      return;
-    }
-    setAmountStr((prev) => {
-      if (prev === '0') return key;
-      const parts = prev.split('.');
-      if (parts[1] && parts[1].length >= 2) return prev;
-      if (parts[0].length >= 8) return prev;
-      return prev + key;
-    });
   };
 
   const handleQuickAdd = (increment: number) => {
@@ -374,27 +345,6 @@ export const EntrySheetModal: React.FC<EntrySheetModalProps> = ({
                 <p className="mt-1.5 text-xs font-medium text-[#D6453D]">{errorMsg}</p>
               )}
             </div>
-
-            {/* Optional Built-In Tactile Numeric Keypad */}
-            {showNumericKeypad && (
-              <div className="grid grid-cols-3 gap-1.5 rounded-[14px] bg-[#F2F4F8] p-2">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'BACK'].map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => handleKeypadTap(k)}
-                    aria-label={k === 'BACK' ? 'Backspace' : `Digit ${k}`}
-                    className="tnum flex min-h-[48px] items-center justify-center rounded-[10px] border border-[#E2E6EE]/80 bg-white text-[18px] font-semibold text-[#141B2D] shadow-[0_1px_2px_rgba(20,27,45,0.04)] transition-transform active:scale-[0.97] active:bg-[#EEF2FF]"
-                  >
-                    {k === 'BACK' ? (
-                      <Delete className="h-5 w-5 text-[#637083]" />
-                    ) : (
-                      k
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
 
             {/* Payment Mode Selection */}
             <div>

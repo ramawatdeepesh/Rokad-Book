@@ -32,7 +32,6 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
   const [address, setAddress] = useState('');
   const [openingCashStr, setOpeningCashStr] = useState('0');
   const [showBilingualTerms, setShowBilingualTerms] = useState(true);
-  const [showNumericKeypad, setShowNumericKeypad] = useState(true);
   const [showPaiseDecimals, setShowPaiseDecimals] = useState(false);
 
   const [submitting, setSubmitting] = useState(false);
@@ -77,7 +76,7 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
         openingCashBalance: openingCash,
         customCategories: [],
         showBilingualTerms,
-        showNumericKeypad,
+        showNumericKeypad: false,
         showPaiseDecimals,
       });
     } catch {
@@ -318,32 +317,6 @@ export const ProfileSetupModal: React.FC<ProfileSetupModalProps> = ({
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
                       showBilingualTerms ? 'translate-x-6' : 'translate-x-1'
-                    }`}
-                  />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between gap-3 py-3">
-                <div>
-                  <p className="text-xs font-semibold text-[#141B2D]">
-                    Tactile Numeric Keypad
-                  </p>
-                  <p className="text-[11px] text-[#637083]">
-                    Show built-in thumb keypad when recording entries
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={showNumericKeypad}
-                  onClick={() => setShowNumericKeypad((v) => !v)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors ${
-                    showNumericKeypad ? 'bg-[#3B5BDB]' : 'bg-[#CBD5E1]'
-                  }`}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                      showNumericKeypad ? 'translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>
